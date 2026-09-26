@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Event Platform - Order Publisher</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      color: #222;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 60px auto;
+      padding: 30px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 15px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      background: #222;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #444;
+    }
+
+    button:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+
+    #result {
+      margin-top: 25px;
+      padding: 15px;
+      border-radius: 6px;
+      display: none;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .success {
+      background: #e8f7e8;
+      border: 1px solid #9bd09b;
+    }
+
+    .error {
+      background: #fdeaea;
+      border: 1px solid #e0a0a0;
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h1>Order Publisher</h1>
+
+    <p class="subtitle">
+      Publish an ORDER_CREATED event to Kafka
+    </p>
+
+    <form id="orderForm">
+
+      <div class="form-group">
+        <label for="orderId">Order ID</label>
+
+        <input
+          id="orderId"
+          name="orderId"
+          type="text"
+          placeholder="order-001"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="userId">User ID</label>
+
+        <input
+          id="userId"
+          name="userId"
+          type="text"
+          placeholder="user-001"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="amount">Amount</label>
+
+        <input
+          id="amount"
+          name="amount"
+          type="number"
+          placeholder="1000"
+          min="0"
+          step="0.01"
+          required
+        />
+      </div>
+
+      <button id="submitButton" type="submit">
+        Publish Order
+      </button>
+
+    </form>
+
+    <div id="result"></div>
+
+  </div>
+
+  <script>
+    const form = document.getElementById("orderForm");
+    const result = document.getElementById("result");
+    const submitButton = document.getElementById("submitButton");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const orderId = document.getElementById("orderId").value.trim();
+      const userId = document.getElementById("userId").value.trim();
+      const amount = Number(document.getElementById("amount").value);
+
+      result.style.display = "none";
+      result.className = "";
+
+      submitButton.disabled = true;
+      submitButton.textContent = "Publishing...";
+
+      try {
+        const response = await fetch("/orders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            orderId,
+            userId,
+            amount
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to publish order");
+        }
+
+        result.className = "success";
+        result.style.display = "block";
+        result.innerHTML = `
+          <strong>Order published successfully!</strong>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        `;
+
+        form.reset();
+      } catch (error) {
+        result.className = "error";
+        result.style.display = "block";
+        result.textContent = error.message || "Something went wrong";
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Publish Order";
+      }
+    });
+  </script>
+
+</body>
+</html>
